@@ -2,12 +2,12 @@
 
 # Customize these paths for your environment.
 # -----------------------------------------------------------
-spark.root=/home/joe/tools/spark/spark-2.3.1-bin-without-hadoop
-hadoop.root=/home/joe/tools/hadoop/hadoop-2.9.1
-app.name=Word Count
-jar.name=spark-demo.jar
-maven.jar.name=spark-demo-1.0.jar
-job.name=wc.WordCountMain
+spark.root=/home/juan/spark-3.2.1-bin-without-hadoop
+hadoop.root=/home/juan/hadoop-3.3.1
+app.name=Decision Tree
+jar.name=decision-tree.jar
+maven.jar.name=decision-tree-1.0.jar
+job.name=ensemble.DecisionTree
 local.master=local[4]
 local.input=input
 local.output=output
