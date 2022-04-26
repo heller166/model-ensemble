@@ -23,16 +23,10 @@ object Ensemble {
     val sc = new SparkContext(conf)
     val num_machines = args(3).toInt
 
-    // Delete output directory, only to ease local development; will not work on AWS. ===========
-    //    val hadoopConf = new org.apache.hadoop.conf.Configuration
-    //    val hdfs = org.apache.hadoop.fs.FileSystem.get(hadoopConf)
-    //    try { hdfs.delete(new org.apache.hadoop.fs.Path(args(1)), true) } catch { case _: Throwable => {} }
-    // ================
-
     val machineNumbers = List.range(0, num_machines)
-    val machines = new ListBuffer[(Int, IndividualModel)]()
+    val machines = new ListBuffer[(Int, LinearModel)]()
     for ( machine <- 0 to num_machines) {
-      machines += (machine, new IndividualModel())
+      machines += (machine, new LinearModel())
     }
 
     val machinesRdd = sc.parallelize(machines)
@@ -41,7 +35,7 @@ object Ensemble {
     val testingCsv = sc.textFile(args(1))
 
     val trainedModels = trainingCsv.map(line => line.split(","))
-      .map(line_values => (partition_data(num_machines), List(line_values.map(item => item.toFloat))))
+      .map(line_values => (partition_data(num_machines), List(line_values.map(item => item.toDouble))))
       .reduceByKey((list1, list2) => list1 ++ list2)
       .fullOuterJoin(machinesRdd)
       .filter(values => values._2._1.isDefined && values._2._1.isDefined)
@@ -62,15 +56,5 @@ object Ensemble {
       })
 
     testModels.saveAsTextFile(args(2))
-  }
-
-  class IndividualModel {
-    def train(data: List[Array[Float]]): IndividualModel = {
-      this
-    }
-
-    def predict(dataPoint: List[Float]): Int = {
-      1
-    }
   }
 }

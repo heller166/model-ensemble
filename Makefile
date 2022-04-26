@@ -4,12 +4,12 @@
 # -----------------------------------------------------------
 spark.root=/home/juan/spark-3.2.1-bin-without-hadoop
 hadoop.root=/home/juan/hadoop-3.3.1
-app.name=Decision Tree
-jar.name=decision-tree.jar
-maven.jar.name=decision-tree-1.0.jar
-job.name=ensemble.DecisionTree
+app.name=Ensemble
+jar.name=ensemble-1.0.jar
+maven.jar.name=ensemble-1.0.jar
+job.name=ensemble.Ensemble
 local.master=local[4]
-local.input=input
+local.input=input/archive/Fish.csv
 local.output=output
 # Pseudo-Cluster Execution
 hdfs.user.name=joe

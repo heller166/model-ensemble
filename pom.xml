@@ -1,10 +1,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>cs6240</groupId>
-  <artifactId>decision-tree</artifactId>
+  <artifactId>ensemble</artifactId>
   <packaging>jar</packaging>
   <version>1.0</version>
-  <name>decision-tree</name>
+  <name>ensemble</name>
   <properties>
     <encoding>UTF-8</encoding>
     <scala.version>2.12.15</scala.version>
@@ -29,15 +29,12 @@
       <version>3.2.1</version>
       <scope>provided</scope>
     </dependency>
-
-    <!-- Example of dependency included in fat Jar package. -->
-    <!--
-	<dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-math3</artifactId>
-      <version>3.2</version>
-	</dependency>
-	-->
+    <!-- https://mvnrepository.com/artifact/org.ejml/ejml-all -->
+    <dependency>
+      <groupId>org.ejml</groupId>
+      <artifactId>ejml-all</artifactId>
+      <version>0.41</version>
+    </dependency>
   </dependencies>
   <build>
     <sourceDirectory>src/main/scala</sourceDirectory>

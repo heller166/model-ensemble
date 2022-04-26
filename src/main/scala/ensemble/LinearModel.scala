@@ -7,8 +7,7 @@ import org.ejml.dense.row.factory.LinearSolverFactory_DDRM
 import org.ejml.dense.row.linsol.AdjustableLinearSolver_DDRM
 
 class LinearModel(var weights: DMatrixRMaj = null) {
-  def this(samplePoints: Array[Array[Double]], observations: Array[Double]) {
-    this()
+  def train(samplePoints: Array[Array[Double]], observations: Array[Double]): Unit = {
     this.weights = new DMatrixRMaj(samplePoints(0).length, 1)
     val A: DMatrixRMaj = new DMatrixRMaj(samplePoints)
     val y: DMatrixRMaj = new DMatrixRMaj(observations)
@@ -36,7 +35,8 @@ object LinearModel {
       .csv(args(0)).toDF()
     val Array(train, test) = data.randomSplit(Array(0.7, 0.3))
 
-    val model = new LinearModel(
+    val model = new LinearModel()
+    model.train(
       train.select("Species", "Length1", "Length2", "Length3", "Height", "Width").collect().map(_.toSeq.toArray.map(_.toString.toDouble)),
       train.select("Weight").collect().map(_.getDouble(0))
     )
