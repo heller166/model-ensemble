@@ -1,60 +1,50 @@
 package ensemble
 
 import org.apache.log4j.LogManager
-import org.apache.spark
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable.ListBuffer
 
 object Ensemble {
-
-  def partition_data(num_machines: Int): Int = {
-    scala.util.Random.nextInt(num_machines)
-  }
-
-  def main(args: Array[String]) {
+  def main(args: Array[String]): Unit = {
     val logger: org.apache.log4j.Logger = LogManager.getRootLogger
-    if (args.length != 3) {
-      logger.error("Usage:\nensemble.Ensemble <train> <test> <output> <num_machines>")
+    if (args.length != 2) {
+      logger.error("Usage:\nensemble.Ensemble <input> <num_models>")
       System.exit(1)
     }
     val conf = new SparkConf().setAppName("Ensemble")
     val sc = new SparkContext(conf)
-    val num_machines = args(3).toInt
+    val numModels = args(1).toInt
 
-    val machineNumbers = List.range(0, num_machines)
-    val machines = new ListBuffer[(Int, LinearModel)]()
-    for ( machine <- 0 to num_machines) {
-      machines += (machine, new LinearModel())
+    val Array(trainingData, testData) = sc.textFile(args(0))
+      .map(line => line.split(",").map(_.toDouble))
+      // Split data into Array(Species, Length1, Length2, Length3, Height, Width) and Weight
+      .map(arr => (Array(arr(0), arr(2), arr(3), arr(4), arr(5), arr(6)), arr(1)))
+      .randomSplit(Array(0.7, 0.3))
+
+    val modelsAndData: RDD[(LinearModel, Array[(Array[Double], Double)])] = sc.parallelize((0 to numModels)
+      .map(_ => (new LinearModel(), trainingData.sample(withReplacement = true, 1.0).collect())))
+
+    val trainedModels = modelsAndData.map{
+        case (model, data) => model.train(
+          data.map{case (samplePoints, _) => samplePoints},
+          data.map{case (_, observation) => observation}
+        )
     }
 
-    val machinesRdd = sc.parallelize(machines)
+    val sumSquaredErr = testData.map{
+      case (samplePoints, observation) =>
+        val predictions = new ListBuffer[Double]
+        trainedModels.foreach(model => predictions.append(model.predict(samplePoints)))
+        (predictions.sum / predictions.length, observation)
+    }.map{
+      case (prediction, observation) => scala.math.pow(observation - prediction, 2)
+    }.sum()
+    val meanObservations = testData.map{case(_, observation) => observation}.mean()
+    val sumResiduals = testData.map{case(_, observation) => observation - meanObservations}.sum()
+    val r2Score = 1 - (sumResiduals / sumSquaredErr)
 
-    val trainingCsv = sc.textFile(args(0))
-    val testingCsv = sc.textFile(args(1))
-
-    val trainedModels = trainingCsv.map(line => line.split(","))
-      .map(line_values => (partition_data(num_machines), List(line_values.map(item => item.toDouble))))
-      .reduceByKey((list1, list2) => list1 ++ list2)
-      .fullOuterJoin(machinesRdd)
-      .filter(values => values._2._1.isDefined && values._2._1.isDefined)
-      .map {
-        case (key, (dataset, model)) => (key, (dataset.get, model.get))
-      }
-      .map(values => (values._1, values._2._2.train(values._2._1)))
-
-    val testModels = testingCsv.map(line => line.split(","))
-      .map(values => values.map(a => a.toFloat))
-      .map(dataPoint => {
-        val predictions = new ListBuffer[Int]
-        trainedModels.foreach(values => predictions ++ values._2.predict(dataPoint.toList))
-        // Average
-        //(dataPoint, predictions.sum / predictions.length)
-        // Most occuring
-        (dataPoint, predictions.groupBy(identity).mapValues(_.size).maxBy(_._2)._1)
-      })
-
-    testModels.saveAsTextFile(args(2))
+    println("R2 Score: " + r2Score)
   }
 }

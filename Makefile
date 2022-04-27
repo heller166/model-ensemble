@@ -11,6 +11,7 @@ job.name=ensemble.Ensemble
 local.master=local[4]
 local.input=input/archive/Fish.csv
 local.output=output
+local.numModels=2
 # Pseudo-Cluster Execution
 hdfs.user.name=joe
 hdfs.input=input
@@ -36,7 +37,7 @@ clean-local-output:
 
 # Runs standalone
 local: jar clean-local-output
-	spark-submit --class ${job.name} --master ${local.master} --name "${app.name}" ${jar.name} ${local.input} ${local.output}
+	spark-submit --class ${job.name} --master ${local.master} --name "${app.name}" ${jar.name} ${local.input} ${local.numModels}
 
 # Start HDFS
 start-hdfs:
