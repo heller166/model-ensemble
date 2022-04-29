@@ -17,7 +17,7 @@ object Ensemble {
     val sc = new SparkContext(conf)
     val numModels = args(1).toInt
 
-    val Array(trainingData, testData) = sc.textFile(args(0))
+    var Array(trainingData, testData) = sc.textFile(args(0))
       .map(line => line.split(",").map(_.toDouble))
       // Split data into Array(Species, Length1, Length2, Length3, Height, Width) and Weight
       .map(arr => (Array(arr(0), arr(2), arr(3), arr(4), arr(5), arr(6)), arr(1)))
@@ -33,17 +33,54 @@ object Ensemble {
         )
     }
 
-    val sumSquaredErr = testData.map{
+    //val testDataBroadcast = sc.broadcast(testData.collect())
+
+    //val sumSquaredErr = trainedModels.map(
+    //  model =>
+    //    testDataBroadcast.value.map{
+    //      case (samplePoints, observation) =>
+    //        (model.predict(samplePoints), observation)
+    //    }
+    //)
+
+    val testDataCollected = testData.collect()
+    /*
+
+    testData  id, data
+    reduceByKey(
+
+    model1  |   model2   |   model3
+
+    trainedModel.map(model => {
+      List predictions
+      for samplePoint, observation in testData {
+        predictions.append(model.predict())
+      }
+    }) // RDD[Array(Double)] size = number of models
+
+
+    prediction1 model1  |  prediction1 model2 | ...
+
+    => prediction1model1 + prediction1model2 ... / number of models
+     */
+
+    val sumSquaredErr = testDataCollected.map{
       case (samplePoints, observation) =>
-        val predictions = new ListBuffer[Double]
-        trainedModels.foreach(model => predictions.append(model.predict(samplePoints)))
+        //val predictions = new ListBuffer[Double]
+        val predictions = trainedModels.collect().map(model => model.predict(samplePoints))
+        //trainedModels.foreach(model => println("here"))
         (predictions.sum / predictions.length, observation)
-    }.map{
+    }
+    val sumSquaredErr2 = sumSquaredErr.map{
       case (prediction, observation) => scala.math.pow(observation - prediction, 2)
-    }.sum()
+    }
+    println(sumSquaredErr2.sum)
+    //println(sumSquaredErr.toString)
     val meanObservations = testData.map{case(_, observation) => observation}.mean()
+    println(meanObservations)
     val sumResiduals = testData.map{case(_, observation) => observation - meanObservations}.sum()
-    val r2Score = 1 - (sumResiduals / sumSquaredErr)
+    println(sumResiduals)
+    val r2Score = 1 - (sumResiduals / sumSquaredErr2.sum)
 
     println("R2 Score: " + r2Score)
   }
