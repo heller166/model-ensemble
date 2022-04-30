@@ -6,8 +6,8 @@ import org.ejml.dense.row.CommonOps_DDRM.dot
 import org.ejml.dense.row.factory.LinearSolverFactory_DDRM
 import org.ejml.dense.row.linsol.AdjustableLinearSolver_DDRM
 
-class LinearModel(var weights: DMatrixRMaj = null) {
-  def train(samplePoints: Array[Array[Double]], observations: Array[Double]): Unit = {
+class LinearModel(var weights: DMatrixRMaj = null) extends Serializable {
+  def train(samplePoints: Array[Array[Double]], observations: Array[Double]): LinearModel = {
     this.weights = new DMatrixRMaj(samplePoints(0).length, 1)
     val A: DMatrixRMaj = new DMatrixRMaj(samplePoints)
     val y: DMatrixRMaj = new DMatrixRMaj(observations)
@@ -19,6 +19,7 @@ class LinearModel(var weights: DMatrixRMaj = null) {
     }
 
     solver.solve(y, weights)
+    this
   }
 
   def predict(row: Array[Double]): Double = {
