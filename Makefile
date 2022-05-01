@@ -10,7 +10,6 @@ maven.jar.name=ensemble-1.0.jar
 job.name=ensemble.Ensemble
 local.master=local[4]
 local.input=input/data_cars_modified.csv
-local.output=output
 local.numModels=100
 # Pseudo-Cluster Execution
 hdfs.user.name=joe
@@ -18,12 +17,12 @@ hdfs.input=input
 hdfs.output=output
 # AWS EMR Execution
 aws.emr.release=emr-5.17.0
-aws.bucket.name=mr-median
-aws.input=input
-aws.output=output
-aws.log.dir=log
-aws.num.nodes=1
-aws.instance.type=m3.xlarge
+aws.bucket.name=juan-mr-median
+aws.input=input/data_cars_modified.csv
+aws.log.dir=log_3
+aws.num.nodes=3
+aws.numModels=10000
+aws.instance.type=m4.large
 # -----------------------------------------------------------
 
 # Compiles code and builds jar (with dependencies).
@@ -109,13 +108,13 @@ upload-app-aws:
 	aws s3 cp ${jar.name} s3://${aws.bucket.name}
 
 # Main EMR launch.
-aws: jar upload-app-aws delete-output-aws
+aws: jar upload-app-aws #delete-output-aws
 	aws emr create-cluster \
 		--name "WordCount Spark Cluster" \
 		--release-label ${aws.emr.release} \
 		--instance-groups '[{"InstanceCount":${aws.num.nodes},"InstanceGroupType":"CORE","InstanceType":"${aws.instance.type}"},{"InstanceCount":1,"InstanceGroupType":"MASTER","InstanceType":"${aws.instance.type}"}]' \
 	    --applications Name=Hadoop Name=Spark \
-		--steps Type=CUSTOM_JAR,Name="${app.name}",Jar="command-runner.jar",ActionOnFailure=TERMINATE_CLUSTER,Args=["spark-submit","--deploy-mode","cluster","--class","${job.name}","s3://${aws.bucket.name}/${jar.name}","s3://${aws.bucket.name}/${aws.input}","s3://${aws.bucket.name}/${aws.output}"] \
+		--steps Type=CUSTOM_JAR,Name="${app.name}",Jar="command-runner.jar",ActionOnFailure=TERMINATE_CLUSTER,Args=["spark-submit","--deploy-mode","cluster","--class","${job.name}","s3://${aws.bucket.name}/${jar.name}","s3://${aws.bucket.name}/${aws.input}","${aws.numModels}"] \
 		--log-uri s3://${aws.bucket.name}/${aws.log.dir} \
 		--use-default-roles \
 		--enable-debugging \
