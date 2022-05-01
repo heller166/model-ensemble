@@ -4,6 +4,8 @@ import org.apache.log4j.LogManager
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
+import scala.collection.mutable.ListBuffer
+
 object Ensemble {
   def main(args: Array[String]): Unit = {
     val logger: org.apache.log4j.Logger = LogManager.getRootLogger
@@ -35,15 +37,23 @@ object Ensemble {
         )
     }
 
-    val testDataCollected = testData.collect()
+    val testDataBroadcast = sc.broadcast(testData.collect())
+    
+    val sumSquaredError = trainedModels.flatMap(model => {
+      val testData = testDataBroadcast.value
+      val predictions = new ListBuffer[(Int, (Double, Double))]()
+      for(i <- testData.indices) {
+        predictions.append((i, (model.predict(testData(i)._1), testData(i)._2)))
+      }
+      predictions
+    }).reduceByKey((a, b) => (a._1 + b._1, a._2))
+      .map{
+        case (_, (predictionSum, observation)) => (predictionSum / numModels, observation)
+      }
+      .map{
+        case (prediction, observation) => scala.math.pow(observation - prediction, 2)
+      }.sum()
 
-    val sumSquaredError = testDataCollected.map{
-      case (samplePoints, observation) =>
-        val predictions = trainedModels.collect().map(model => model.predict(samplePoints))
-        (predictions.sum / predictions.length, observation)
-    }.map{
-      case (prediction, observation) => scala.math.pow(observation - prediction, 2)
-    }.sum
     val meanObservations = testData.map{case(_, observation) => observation}.mean()
     val sumSquaredTotal = testData.map{case(_, observation) => scala.math.pow(observation - meanObservations, 2)}.sum()
     val r2Score = 1 - (sumSquaredError / sumSquaredTotal)
