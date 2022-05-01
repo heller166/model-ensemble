@@ -16,12 +16,16 @@ object Ensemble {
     val numModels = args(1).toInt
 
     val Array(trainingData, testData) = sc.textFile(args(0))
+      .sample(withReplacement = false, 0.001)
       .map(line => line.split(",").map(_.toDouble))
-      // Split data into Array(Species, Length1, Length2, Length3, Height, Width) and Weight
-      .map(arr => (Array(arr(0), arr(2), arr(3), arr(4), arr(5), arr(6)), arr(1)))
+      .map(arr => {
+          val price = arr(8)
+          val features = arr.patch(8,Nil,1).slice(0, 12)
+          (features, price)
+      })
       .randomSplit(Array(0.7, 0.3))
 
-    val modelsAndData: RDD[(LinearModel, Array[(Array[Double], Double)])] = sc.parallelize((0 to numModels)
+    val modelsAndData: RDD[(LinearModel, Array[(Array[Double], Double)])] = sc.parallelize((0 until numModels)
       .map(_ => (new LinearModel(), trainingData.sample(withReplacement = true, 1.0).collect())))
 
     val trainedModels = modelsAndData.map{

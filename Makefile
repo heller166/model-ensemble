@@ -9,7 +9,7 @@ jar.name=ensemble-1.0.jar
 maven.jar.name=ensemble-1.0.jar
 job.name=ensemble.Ensemble
 local.master=local[4]
-local.input=input/archive/Fish.csv
+local.input=input/data_cars_modified.csv
 local.output=output
 local.numModels=2
 # Pseudo-Cluster Execution
