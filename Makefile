@@ -11,7 +11,7 @@ job.name=ensemble.Ensemble
 local.master=local[4]
 local.input=input/data_cars_modified.csv
 local.output=output
-local.numModels=2
+local.numModels=100
 # Pseudo-Cluster Execution
 hdfs.user.name=joe
 hdfs.input=input

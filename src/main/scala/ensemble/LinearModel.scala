@@ -1,18 +1,17 @@
 package ensemble
 
-import org.apache.spark.sql.SparkSession.builder
-import org.ejml.data.DMatrixRMaj
-import org.ejml.dense.row.CommonOps_DDRM.dot
-import org.ejml.dense.row.factory.LinearSolverFactory_DDRM
-import org.ejml.dense.row.linsol.AdjustableLinearSolver_DDRM
+import org.ejml.data.FMatrixRMaj
+import org.ejml.dense.row.CommonOps_FDRM.dot
+import org.ejml.dense.row.factory.LinearSolverFactory_FDRM
+import org.ejml.dense.row.linsol.AdjustableLinearSolver_FDRM
 
-class LinearModel(var weights: DMatrixRMaj = null) extends Serializable {
-  def train(samplePoints: Array[Array[Double]], observations: Array[Double]): LinearModel = {
-    this.weights = new DMatrixRMaj(samplePoints(0).length, 1)
-    val A: DMatrixRMaj = new DMatrixRMaj(samplePoints)
-    val y: DMatrixRMaj = new DMatrixRMaj(observations)
+class LinearModel(var weights: FMatrixRMaj = null) extends Serializable {
+  def train(samplePoints: Array[Array[Float]], observations: Array[Float]): LinearModel = {
+    this.weights = new FMatrixRMaj(samplePoints(0).length, 1)
+    val A: FMatrixRMaj = new FMatrixRMaj(samplePoints)
+    val y: FMatrixRMaj = new FMatrixRMaj(observations)
 
-    val solver: AdjustableLinearSolver_DDRM = LinearSolverFactory_DDRM.adjustable()
+    val solver: AdjustableLinearSolver_FDRM = LinearSolverFactory_FDRM.adjustable()
 
     if(!solver.setA(A)) {
       throw new RuntimeException("Solver failed")
@@ -22,32 +21,8 @@ class LinearModel(var weights: DMatrixRMaj = null) extends Serializable {
     this
   }
 
-  def predict(row: Array[Double]): Double = {
-    dot(weights, new DMatrixRMaj(row))
-  }
-}
-
-object LinearModel {
-  def main(args: Array[String]): Unit = {
-    val spark = builder.master("local").appName("Ensemble").getOrCreate()
-
-    val data = spark.read.option("header", "true")
-      .schema("Species DOUBLE, Weight DOUBLE, Length1 DOUBLE, Length2 DOUBLE, Length3 DOUBLE, Height DOUBLE, Width DOUBLE")
-      .csv(args(0)).toDF()
-    val Array(train, test) = data.randomSplit(Array(0.7, 0.3))
-
-    val model = new LinearModel()
-    model.train(
-      train.select("Species", "Length1", "Length2", "Length3", "Height", "Width").collect().map(_.toSeq.toArray.map(_.toString.toDouble)),
-      train.select("Weight").collect().map(_.getDouble(0))
-    )
-
-    val samples = test.select("Species", "Length1", "Length2", "Length3", "Height", "Width")
-      .first().toSeq.toArray.map(_.toString.toDouble)
-    val observation = test.select("Weight").first().getDouble(0)
-
-    println("Real Weight:", observation)
-    println("Predicted Weight:", model.predict(samples))
+  def predict(row: Array[Float]): Float = {
+    dot(weights, new FMatrixRMaj(row))
   }
 }
 

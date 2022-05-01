@@ -5,21 +5,33 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable.ListBuffer
+import scala.util.Random
 
 object Ensemble {
+
+  def randomSample(data: Array[(Array[Float], Float)]): Array[(Array[Float], Float)] = {
+    val sample = new ListBuffer[(Array[Float], Float)]
+    for(_ <- data.indices) {
+      Random.nextInt(data.length)
+      sample.append(data(Random.nextInt(data.length)))
+    }
+
+    sample.toArray
+  }
+
   def main(args: Array[String]): Unit = {
     val logger: org.apache.log4j.Logger = LogManager.getRootLogger
     if (args.length != 2) {
       logger.error("Usage:\nensemble.Ensemble <input> <num_models>")
       System.exit(1)
     }
-    val conf = new SparkConf().setAppName("Ensemble")
+    val conf = new SparkConf().setAppName("Ensemble").set("spark.executor.memory", "6g")
     val sc = new SparkContext(conf)
     val numModels = args(1).toInt
 
     val Array(trainingData, testData) = sc.textFile(args(0))
-      .sample(withReplacement = false, 0.001)
-      .map(line => line.split(",").map(_.toDouble))
+      .sample(withReplacement = false, 0.0025)
+      .map(line => line.split(",").map(_.toFloat))
       .map(arr => {
           val price = arr(8)
           val features = arr.patch(8,Nil,1).slice(0, 12)
@@ -27,21 +39,20 @@ object Ensemble {
       })
       .randomSplit(Array(0.7, 0.3))
 
-    val modelsAndData: RDD[(LinearModel, Array[(Array[Double], Double)])] = sc.parallelize((0 until numModels)
-      .map(_ => (new LinearModel(), trainingData.sample(withReplacement = true, 1.0).collect())))
+    val trainingDataBroadcast = sc.broadcast(trainingData.collect())
 
-    val trainedModels = modelsAndData.map{
-        case (model, data) => model.train(
-          data.map{case (samplePoints, _) => samplePoints},
-          data.map{case (_, observation) => observation}
-        )
-    }
+    val models: RDD[LinearModel] = sc.parallelize(0 until numModels).map(_ => new LinearModel())
+
+    val trainedModels = models.map(model => {
+          val data = randomSample(trainingDataBroadcast.value)
+          model.train(data.map{case (samplePoints, _) => samplePoints}, data.map{case (_, observation) => observation})
+    })
 
     val testDataBroadcast = sc.broadcast(testData.collect())
-    
+
     val sumSquaredError = trainedModels.flatMap(model => {
       val testData = testDataBroadcast.value
-      val predictions = new ListBuffer[(Int, (Double, Double))]()
+      val predictions = new ListBuffer[(Int, (Float, Float))]()
       for(i <- testData.indices) {
         predictions.append((i, (model.predict(testData(i)._1), testData(i)._2)))
       }
