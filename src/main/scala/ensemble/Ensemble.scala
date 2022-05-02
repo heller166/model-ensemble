@@ -25,7 +25,7 @@ object Ensemble {
       logger.error("Usage:\nensemble.Ensemble <input> <num_models>")
       System.exit(1)
     }
-    val conf = new SparkConf().setAppName("Ensemble").set("spark.executor.memory", "6g")
+    val conf = new SparkConf().setAppName("Ensemble")
     val sc = new SparkContext(conf)
     val numModels = args(1).toInt
 

@@ -16,13 +16,13 @@ hdfs.user.name=joe
 hdfs.input=input
 hdfs.output=output
 # AWS EMR Execution
-aws.emr.release=emr-5.17.0
-aws.bucket.name=juan-mr-median
+aws.emr.release=emr-6.5.0
+aws.bucket.name=juan-mr-median-2
 aws.input=input/data_cars_modified.csv
-aws.log.dir=log_3
-aws.num.nodes=3
-aws.numModels=10000
-aws.instance.type=m4.large
+aws.log.dir=log_6_xlarge_100000
+aws.num.nodes=6
+aws.numModels=100000
+aws.instance.type=m4.xlarge
 # -----------------------------------------------------------
 
 # Compiles code and builds jar (with dependencies).
@@ -108,7 +108,7 @@ upload-app-aws:
 	aws s3 cp ${jar.name} s3://${aws.bucket.name}
 
 # Main EMR launch.
-aws: jar upload-app-aws #delete-output-aws
+aws: #jar upload-app-aws #delete-output-aws
 	aws emr create-cluster \
 		--name "WordCount Spark Cluster" \
 		--release-label ${aws.emr.release} \
